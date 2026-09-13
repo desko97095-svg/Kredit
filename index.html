@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Кредитен калкулатор — ипотечен и потребителски кредит</title>
+<meta name="description" content="Изчислете месечната вноска, общата лихва и ГПР по ипотечен или потребителски кредит. Пълен погасителен план и симулация на предсрочно погасяване.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=Unbounded:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0D1822;
+  --panel:#142330;
+  --panel-2:#192C3B;
+  --line:#22394C;
+  --text:#E8EEF2;
+  --muted:#8CA3B5;
+  --brass:#E3A84F;
+  --teal:#46B39A;
+  --danger:#E3705F;
+  --r-lg:18px;
+  --r-sm:10px;
+  --ease:cubic-bezier(.22,.8,.24,1);
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;
+  background:
+    radial-gradient(120% 70% at 85% -10%, #1B3346 0%, rgba(27,51,70,0) 60%),
+    var(--ink);
+  color:var(--text);
+  font-family:"Golos Text","Segoe UI",system-ui,-apple-system,sans-serif;
+  font-size:16px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1080px;margin:0 auto;padding:22px 18px 120px}
+
+/* ---------- Шапка ---------- */
+.brand{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.brand h1{
+  font-family:"Unbounded","Golos Text",sans-serif;
+  font-weight:400;font-size:clamp(21px,4.6vw,30px);
+  letter-spacing:-.015em;margin:0;
+}
+.brand p{margin:2px 0 0;color:var(--muted);font-size:14px;max-width:46ch}
+.fx{color:var(--muted);font-size:13px;white-space:nowrap;border-left:2px solid var(--line);padding-left:10px}
+
+/* ---------- Табове ---------- */
+.tabs{position:relative;display:grid;grid-template-columns:1fr 1fr;background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);padding:5px;margin-bottom:20px}
+.tabs .glider{position:absolute;top:5px;bottom:5px;left:5px;width:calc(50% - 5px);background:var(--panel-2);border:1px solid var(--line);border-radius:13px;transition:transform .38s var(--ease)}
+.tab{position:relative;z-index:1;background:none;border:0;color:var(--muted);font:inherit;font-weight:600;padding:12px 8px;border-radius:13px;cursor:pointer;transition:color .25s}
+.tab[aria-selected="true"]{color:var(--text)}
+.tabs[data-active="consumer"] .glider{transform:translateX(100%)}
+
+/* ---------- Мрежа ---------- */
+.grid{display:grid;gap:18px}
+@media(min-width:900px){
+  .grid{grid-template-columns:1fr .82fr;align-items:start}
+  .col-result{position:sticky;top:22px}
+}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);padding:18px}
+.card h2{font-size:15px;font-weight:600;margin:0 0 14px;letter-spacing:.01em}
+
+/* ---------- Полета ---------- */
+.field{margin-bottom:18px}
+.field:last-child{margin-bottom:0}
+.field-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+.field label{font-size:14px;color:var(--muted)}
+.val{display:flex;align-items:center;gap:5px;background:var(--panel-2);border:1px solid var(--line);border-radius:var(--r-sm);padding:5px 9px;transition:border-color .2s}
+.val:focus-within{border-color:var(--brass)}
+.val input{
+  width:6.2ch;background:none;border:0;color:var(--text);font:inherit;font-weight:600;
+  font-variant-numeric:tabular-nums;text-align:right;padding:0;
+}
+.val input::-webkit-outer-spin-button,.val input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.val input[type=number]{-moz-appearance:textfield}
+.val .unit{color:var(--muted);font-size:13px}
+.val.w-lg input{width:8.5ch}
+
+input[type=range]{
+  -webkit-appearance:none;appearance:none;width:100%;height:22px;background:none;cursor:pointer;display:block
+}
+input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:3px;background:var(--line)}
+input[type=range]::-moz-range-track{height:4px;border-radius:3px;background:var(--line)}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:19px;height:19px;margin-top:-7.5px;border-radius:50%;
+  background:var(--brass);border:3px solid var(--panel);box-shadow:0 0 0 1px var(--brass);
+  transition:transform .18s var(--ease)
+}
+input[type=range]::-moz-range-thumb{
+  width:13px;height:13px;border-radius:50%;background:var(--brass);border:3px solid var(--panel);box-shadow:0 0 0 1px var(--brass)
+}
+input[type=range]:active::-webkit-slider-thumb{transform:scale(1.18)}
+.hint{font-size:12.5px;color:var(--muted);margin-top:6px}
+
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--panel-2);border:1px solid var(--line);border-radius:var(--r-sm);padding:4px}
+.seg button{background:none;border:0;color:var(--muted);font:inherit;font-size:13.5px;font-weight:500;padding:9px 6px;border-radius:7px;cursor:pointer;transition:background .25s,color .25s}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--text);box-shadow:inset 0 0 0 1px var(--line)}
+
+details.extra{border-top:1px solid var(--line);margin-top:18px;padding-top:14px}
+details.extra>summary{
+  list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;
+  font-size:14px;font-weight:600;color:var(--text)
+}
+details.extra>summary::-webkit-details-marker{display:none}
+details.extra>summary .chev{color:var(--muted);transition:transform .3s var(--ease)}
+details.extra[open]>summary .chev{transform:rotate(180deg)}
+details.extra .body{padding-top:16px;animation:slide .32s var(--ease)}
+@keyframes slide{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+
+/* ---------- Резултат ---------- */
+.headline{text-align:left;margin-bottom:4px}
+.headline .lab{font-size:13.5px;color:var(--muted)}
+.headline .num{
+  font-family:"Unbounded","Golos Text",sans-serif;font-weight:400;
+  font-size:clamp(38px,10vw,54px);line-height:1.05;letter-spacing:-.03em;
+  font-variant-numeric:tabular-nums;margin:4px 0 2px;
+}
+.headline .num .cur{font-size:.42em;color:var(--muted);margin-left:6px;letter-spacing:0}
+.headline .bgn{font-size:13.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+
+.ringrow{display:flex;align-items:center;gap:16px;margin:18px 0 4px}
+.ring{flex:0 0 108px}
+.ring circle{fill:none;stroke-width:11;stroke-linecap:round}
+.ring .bg{stroke:var(--panel-2)}
+.ring .arc{transition:stroke-dashoffset .6s var(--ease),transform .6s var(--ease)}
+.legend{flex:1;min-width:0;display:grid;gap:10px}
+.leg{display:flex;align-items:baseline;gap:8px;font-size:13.5px}
+.leg .dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto;translate:0 -1px}
+.leg .k{color:var(--muted)}
+.leg .v{margin-left:auto;font-weight:600;font-variant-numeric:tabular-nums}
+
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--r-sm);overflow:hidden;margin-top:16px}
+.stat{background:var(--panel);padding:12px}
+.stat .k{font-size:12.5px;color:var(--muted)}
+.stat .v{font-weight:600;font-variant-numeric:tabular-nums;margin-top:3px}
+.stat .v small{font-weight:400;color:var(--muted);font-size:12.5px}
+
+.spark{margin-top:16px}
+.spark svg{display:block;width:100%;height:72px;overflow:visible}
+.spark .line{fill:none;stroke:var(--teal);stroke-width:2}
+.spark .area{fill:url(#sparkfill);opacity:.5}
+.spark .cap{font-size:12px;color:var(--muted);display:flex;justify-content:space-between;margin-top:6px}
+
+.saved{
+  margin-top:14px;border:1px solid rgba(70,179,154,.4);background:rgba(70,179,154,.09);
+  border-radius:var(--r-sm);padding:11px 12px;font-size:13.5px
+}
+.saved b{font-variant-numeric:tabular-nums}
+.warn{margin-top:14px;border:1px solid rgba(227,112,95,.45);background:rgba(227,112,95,.1);border-radius:var(--r-sm);padding:11px 12px;font-size:13.5px}
+
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px}
+.btn{
+  background:var(--panel-2);border:1px solid var(--line);color:var(--text);font:inherit;font-size:13.5px;font-weight:600;
+  padding:11px 10px;border-radius:var(--r-sm);cursor:pointer;transition:border-color .2s,background .2s
+}
+.btn:hover{border-color:var(--brass)}
+.btn.primary{background:var(--brass);border-color:var(--brass);color:#17232D}
+.btn.primary:hover{background:#EFB763}
+
+/* ---------- Погасителен план ---------- */
+.plan{margin-top:18px}
+.yr{border:1px solid var(--line);border-radius:var(--r-sm);margin-bottom:8px;overflow:hidden;background:var(--panel)}
+.yr>summary{
+  list-style:none;cursor:pointer;display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;
+  padding:12px 14px;font-size:14px
+}
+.yr>summary::-webkit-details-marker{display:none}
+.yr .ytitle{font-weight:600}
+.yr .ymeta{color:var(--muted);font-size:12.5px;font-variant-numeric:tabular-nums;text-align:right}
+.yr table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+.yr th,.yr td{padding:8px 14px;text-align:right;border-top:1px solid var(--line);white-space:nowrap}
+.yr th{color:var(--muted);font-weight:500;font-size:12px}
+.yr th:first-child,.yr td:first-child{text-align:left}
+.yr tbody tr{animation:row .3s var(--ease) backwards}
+@keyframes row{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.scroll{overflow-x:auto}
+.plan-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+
+/* ---------- Лепкава лента (мобилно) ---------- */
+.dock{
+  position:fixed;left:0;right:0;bottom:0;z-index:20;
+  background:rgba(13,24,34,.92);backdrop-filter:blur(10px);border-top:1px solid var(--line);
+  padding:11px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  transform:translateY(110%);transition:transform .35s var(--ease)
+}
+.dock.on{transform:none}
+.dock .k{font-size:12px;color:var(--muted)}
+.dock .v{font-weight:600;font-variant-numeric:tabular-nums;font-size:17px}
+.dock .apr{font-size:12.5px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+@media(min-width:900px){.dock{display:none}}
+
+.foot{color:var(--muted);font-size:12.5px;margin-top:22px;max-width:70ch}
+
+:where(button,input,summary,a):focus-visible{outline:2px solid var(--brass);outline-offset:2px;border-radius:6px}
+
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{transition-duration:.001ms !important;animation-duration:.001ms !important}
+}
+
+@media print{
+  body{background:#fff;color:#000}
+  .tabs,.actions,.dock,.col-form,.spark,details.extra{display:none !important}
+  .card{border:1px solid #999;background:#fff;color:#000}
+  .stat{background:#fff}
+  .yr{break-inside:avoid}
+  .yr td,.yr th{border-color:#ccc}
+  :root{--text:#000;--muted:#444;--panel:#fff;--panel-2:#fff;--line:#bbb}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="brand">
+    <div>
+      <h1>Кредитен калкулатор</h1>
+      <p>Вноска, обща лихва и ГПР с включени такси — плюс пълен погасителен план.</p>
+    </div>
+    <span class="fx">1 EUR = 1,95583 лв.</span>
+  </header>
+
+  <div class="tabs" id="tabs" data-active="mortgage" role="tablist" aria-label="Вид кредит">
+    <span class="glider" aria-hidden="true"></span>
+    <button class="tab" role="tab" id="tab-mortgage" aria-selected="true" aria-controls="form">Ипотечен</button>
+    <button class="tab" role="tab" id="tab-consumer" aria-selected="false" aria-controls="form">Потребителски</button>
+  </div>
+
+  <div class="grid">
+
+    <!-- ============ ФОРМА ============ -->
+    <section class="card col-form" id="form">
+      <h2 id="formTitle">Параметри на кредита</h2>
+
+      <!-- Цена на имота (само ипотечен) -->
+      <div class="field" id="f-price">
+        <div class="field-top">
+          <label for="price">Цена на имота</label>
+          <span class="val w-lg"><input id="price" type="number" min="10000" max="2000000" step="1000" value="150000"><span class="unit">€</span></span>
+        </div>
+        <input id="price-r" type="range" min="10000" max="1000000" step="1000" value="150000" aria-label="Цена на имота, плъзгач">
+      </div>
+
+      <!-- Самоучастие (само ипотечен) -->
+      <div class="field" id="f-down">
+        <div class="field-top">
+          <label for="down">Самоучастие</label>
+          <span class="val"><input id="down" type="number" min="0" max="90" step="1" value="20"><span class="unit">%</span></span>
+        </div>
+        <input id="down-r" type="range" min="0" max="90" step="1" value="20" aria-label="Самоучастие в проценти, плъзгач">
+        <div class="hint" id="downHint"></div>
+      </div>
+
+      <!-- Сума (само потребителски) -->
+      <div class="field" id="f-amount" hidden>
+        <div class="field-top">
+          <label for="amount">Сума на кредита</label>
+          <span class="val w-lg"><input id="amount" type="number" min="250" max="200000" step="100" value="10000"><span class="unit">€</span></span>
+        </div>
+        <input id="amount-r" type="range" min="250" max="100000" step="100" value="10000" aria-label="Сума на кредита, плъзгач">
+      </div>
+
+      <div class="field">
+        <div class="field-top">
+          <label for="rate">Годишна лихва (ГЛП)</label>
+          <span class="val"><input id="rate" type="number" min="0" max="60" step="0.05" value="2.9"><span class="unit">%</span></span>
+        </div>
+        <input id="rate-r" type="range" min="0" max="20" step="0.05" value="2.9" aria-label="Годишна лихва, плъзгач">
+      </div>
+
+      <div class="field">
+        <div class="field-top">
+          <label for="term">Срок</label>
+          <span class="val"><input id="term" type="number" min="1" max="480" step="1" value="300"><span class="unit" id="termUnit">месеца</span></span>
+        </div>
+        <input id="term-r" type="range" min="1" max="480" step="1" value="300" aria-label="Срок в месеци, плъзгач">
+        <div class="hint" id="termHint"></div>
+      </div>
+
+      <div class="field">
+        <div class="field-top"><label>Вид вноска</label></div>
+        <div class="seg" id="segType">
+          <button type="button" data-v="annuity" aria-pressed="true">Анюитетна</button>
+          <button type="button" data-v="declining" aria-pressed="false">Намаляваща</button>
+        </div>
+        <div class="hint" id="typeHint">Еднаква вноска през целия срок.</div>
+      </div>
+
+      <details class="extra" id="feesBox">
+        <summary>Такси и застраховки <span class="chev" aria-hidden="true">▾</span></summary>
+        <div class="body">
+          <div class="field">
+            <div class="field-top">
+              <label for="fee">Еднократна такса при усвояване</label>
+              <span class="val"><input id="fee" type="number" min="0" max="20000" step="10" value="400"><span class="unit">€</span></span>
+            </div>
+          </div>
+          <div class="field">
+            <div class="field-top">
+              <label for="mfee">Месечна такса обслужване</label>
+              <span class="val"><input id="mfee" type="number" min="0" max="500" step="1" value="0"><span class="unit">€</span></span>
+            </div>
+          </div>
+          <div class="field" id="f-ins">
+            <div class="field-top">
+              <label for="ins">Имуществена застраховка (годишно)</label>
+              <span class="val"><input id="ins" type="number" min="0" max="5000" step="10" value="120"><span class="unit">€</span></span>
+            </div>
+          </div>
+          <div class="field">
+            <div class="field-top">
+              <label for="life">Застраховка живот (месечно)</label>
+              <span class="val"><input id="life" type="number" min="0" max="500" step="1" value="15"><span class="unit">€</span></span>
+            </div>
+            <div class="hint">Таксите влизат в ГПР, но не в лихвата.</div>
+          </div>
+        </div>
+      </details>
+
+      <details class="extra" id="prepayBox">
+        <summary>Предсрочно погасяване <span class="chev" aria-hidden="true">▾</span></summary>
+        <div class="body">
+          <div class="field">
+            <div class="field-top">
+              <label for="extra">Доплащане към всяка вноска</label>
+              <span class="val"><input id="extra" type="number" min="0" max="10000" step="10" value="0"><span class="unit">€</span></span>
+            </div>
+            <input id="extra-r" type="range" min="0" max="1000" step="10" value="0" aria-label="Месечно доплащане, плъзгач">
+          </div>
+          <div class="field">
+            <div class="field-top">
+              <label for="lump">Еднократна вноска</label>
+              <span class="val w-lg"><input id="lump" type="number" min="0" max="1000000" step="500" value="0"><span class="unit">€</span></span>
+            </div>
+          </div>
+          <div class="field">
+            <div class="field-top">
+              <label for="lumpm">…в месец номер</label>
+              <span class="val"><input id="lumpm" type="number" min="1" max="480" step="1" value="12"></span>
+            </div>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <!-- ============ РЕЗУЛТАТ ============ -->
+    <section class="card col-result" id="result" aria-live="polite">
+      <div class="headline">
+        <div class="lab" id="payLab">Месечна вноска</div>
+        <div class="num" id="payNum">—<span class="cur">€</span></div>
+        <div class="bgn" id="payBgn"></div>
+      </div>
+
+      <div class="ringrow">
+        <svg class="ring" viewBox="0 0 120 120" role="img" aria-label="Съотношение главница към лихва">
+          <circle class="bg" cx="60" cy="60" r="50"></circle>
+          <circle class="arc" id="arcPrin" cx="60" cy="60" r="50" stroke="var(--teal)" transform="rotate(-90 60 60)"></circle>
+          <circle class="arc" id="arcInt" cx="60" cy="60" r="50" stroke="var(--brass)" transform="rotate(-90 60 60)"></circle>
+        </svg>
+        <div class="legend">
+          <div class="leg"><span class="dot" style="background:var(--teal)"></span><span class="k">Главница</span><span class="v" id="vPrin">—</span></div>
+          <div class="leg"><span class="dot" style="background:var(--brass)"></span><span class="k">Лихва</span><span class="v" id="vInt">—</span></div>
+          <div class="leg"><span class="dot" style="background:var(--muted)"></span><span class="k">Такси</span><span class="v" id="vFees">—</span></div>
+        </div>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><div class="k">Общо за връщане</div><div class="v" id="sTotal">—</div></div>
+        <div class="stat"><div class="k">ГПР</div><div class="v" id="sApr">—</div></div>
+        <div class="stat"><div class="k">Размер на кредита</div><div class="v" id="sLoan">—</div></div>
+        <div class="stat"><div class="k">Срок</div><div class="v" id="sTerm">—</div></div>
+      </div>
+
+      <div class="spark" id="sparkBox">
+        <svg viewBox="0 0 300 72" preserveAspectRatio="none" aria-hidden="true">
+          <defs><linearGradient id="sparkfill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#46B39A" stop-opacity=".45"/>
+            <stop offset="100%" stop-color="#46B39A" stop-opacity="0"/>
+          </linearGradient></defs>
+          <path class="area" id="sparkArea" d=""></path>
+          <path class="line" id="sparkLine" d=""></path>
+        </svg>
+        <div class="cap"><span>Остатък по главницата</span><span id="sparkEnd"></span></div>
+      </div>
+
+      <div id="msg"></div>
+
+      <div class="actions">
+        <button class="btn primary" id="btnCopy" type="button">Копирай офертата</button>
+        <button class="btn" id="btnPrint" type="button">Принтирай плана</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ ПОГАСИТЕЛЕН ПЛАН ============ -->
+  <section class="card plan">
+    <div class="plan-head">
+      <h2 style="margin:0">Погасителен план</h2>
+      <button class="btn" id="btnAll" type="button">Разгъни всички години</button>
+    </div>
+    <div id="planBody"></div>
+  </section>
+
+  <p class="foot">Изчисленията са ориентировъчни и служат за планиране. Банките формират ГПР по свои тарифи, които може да включват допълнителни такси, а лихвата по ипотечните кредити често е променлива. Сумите в лева са преизчислени по фиксирания курс 1,95583.</p>
+</div>
+
+<div class="dock" id="dock" aria-hidden="true">
+  <div><div class="k">Месечна вноска</div><div class="v" id="dockPay">—</div></div>
+  <div class="apr" id="dockApr"></div>
+</div>
+
+<script>
+/* ====== Изчислително ядро ====== */
+const FX = 1.95583; // фиксиран курс EUR/BGN
+
+function clampNum(v, min, max, fallback) {
+  const n = typeof v === 'number' ? v : parseFloat(String(v).replace(',', '.'));
+  if (!isFinite(n)) return fallback;
+  return Math.min(max, Math.max(min, n));
+}
+
+function annuityPayment(P, i, n) {
+  if (n <= 0) return 0;
+  if (i === 0) return P / n;
+  return (P * i) / (1 - Math.pow(1 + i, -n));
+}
+
+function buildSchedule(o) {
+  const P = o.principal;
+  const n = Math.round(o.months);
+  const i = o.annualRate / 100 / 12;
+  const monthlyFee = o.monthlyFee || 0;
+  const ins = o.monthlyInsurance || 0;
+  const extra = o.extraMonthly || 0;
+  const lumpMonth = o.lumpMonth || 0;
+  const lump = o.lumpAmount || 0;
+
+  const rows = [];
+  const res = { rows, termMonths:0, totalInterest:0, totalFees:0, totalPaid:0,
+                firstPayment:0, lastPayment:0, scheduledPayment:0, valid:false };
+  if (!(P > 0) || n <= 0) return res;
+
+  const basePayment = annuityPayment(P, i, n);
+  res.scheduledPayment = o.type === 'declining' ? P / n + P * i : basePayment;
+
+  let bal = P, m = 0;
+  const guard = n + 1;
+
+  while (bal > 0.005 && m < guard) {
+    m++;
+    const interest = bal * i;
+    let due = o.type === 'declining' ? P / n + interest : basePayment;
+    due += extra;
+    if (m === lumpMonth) due += lump;
+
+    let principalPart = due - interest;
+    if (principalPart <= 0) return res;
+    if (principalPart > bal) principalPart = bal;
+    const payment = principalPart + interest;
+    bal -= principalPart;
+
+    rows.push({ m, payment, interest, principal: principalPart, fees: monthlyFee + ins, balance: bal });
+    res.totalInterest += interest;
+    res.totalFees += monthlyFee + ins;
+  }
+
+  res.termMonths = rows.length;
+  res.firstPayment = rows[0].payment + rows[0].fees;
+  res.lastPayment = rows[rows.length-1].payment + rows[rows.length-1].fees;
+  res.totalPaid = rows.reduce((s,r)=>s + r.payment + r.fees, 0);
+  res.valid = true;
+  return res;
+}
+
+function apr(schedule, principal, upfrontFees) {
+  if (!schedule.valid) return NaN;
+  const net = principal - (upfrontFees || 0);
+  if (net <= 0) return NaN;
+  const flows = schedule.rows.map(r => r.payment + r.fees);
+  const npv = r => {
+    let s = -net;
+    for (let k = 0; k < flows.length; k++) s += flows[k] / Math.pow(1 + r, k + 1);
+    return s;
+  };
+  let lo = -0.9, hi = 1.0;
+  if (npv(lo) * npv(hi) > 0) return NaN;
+  for (let k = 0; k < 200; k++) {
+    const mid = (lo + hi) / 2;
+    if (npv(mid) > 0) lo = mid; else hi = mid;
+  }
+  const monthly = (lo + hi) / 2;
+  return (Math.pow(1 + monthly, 12) - 1) * 100;
+}
+
+/* ====== Формати ====== */
+const nf0 = new Intl.NumberFormat('bg-BG', {maximumFractionDigits:0});
+const nf2 = new Intl.NumberFormat('bg-BG', {minimumFractionDigits:2, maximumFractionDigits:2});
+const eur = v => nf2.format(v) + ' €';
+const eur0 = v => nf0.format(Math.round(v)) + ' €';
+const bgn = v => nf2.format(v * FX) + ' лв.';
+const pct = v => nf2.format(v) + ' %';
+function termText(m){
+  const y = Math.floor(m/12), mm = m%12;
+  const yp = y===1 ? '1 година' : y + ' години';
+  const mp = mm===1 ? '1 месец' : mm + ' месеца';
+  if (!y) return mp;
+  if (!mm) return yp;
+  return yp + ' и ' + mp;
+}
+
+/* ====== Състояние и елементи ====== */
+const $ = id => document.getElementById(id);
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let mode = 'mortgage';
+let payType = 'annuity';
+let last = {};
+
+const pairs = [['price','price-r'],['down','down-r'],['amount','amount-r'],['rate','rate-r'],['term','term-r'],['extra','extra-r']];
+pairs.forEach(([a,b])=>{
+  const A = $(a), B = $(b);
+  A.addEventListener('input', ()=>{ B.value = Math.min(+B.max, Math.max(+B.min, +A.value || 0)); schedule(); });
+  B.addEventListener('input', ()=>{ A.value = B.value; schedule(); });
+});
+['fee','mfee','ins','life','lump','lumpm'].forEach(id => $(id).addEventListener('input', schedule));
+
+$('segType').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  payType = b.dataset.v;
+  [...$('segType').children].forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  $('typeHint').textContent = payType === 'annuity'
+    ? 'Еднаква вноска през целия срок.'
+    : 'Вноската започва по-висока и намалява всеки месец. Общата лихва е по-малка.';
+  render(); syncUrl();
+});
+
+$('tabs').addEventListener('click', e => {
+  const b = e.target.closest('.tab'); if (!b) return;
+  setMode(b.id === 'tab-consumer' ? 'consumer' : 'mortgage');
+});
+
+function setMode(m){
+  mode = m;
+  $('tabs').dataset.active = m;
+  $('tab-mortgage').setAttribute('aria-selected', String(m==='mortgage'));
+  $('tab-consumer').setAttribute('aria-selected', String(m==='consumer'));
+  const mort = m === 'mortgage';
+  $('f-price').hidden = !mort;
+  $('f-down').hidden = !mort;
+  $('f-ins').hidden = !mort;
+  $('f-amount').hidden = mort;
+  if (mort){
+    $('rate').value = 2.9; $('rate-r').value = 2.9;
+    $('term').value = 300; $('term-r').value = 300;
+    $('fee').value = 400; $('life').value = 15;
+  } else {
+    $('rate').value = 10.9; $('rate-r').value = 10.9;
+    $('term').value = 60; $('term-r').value = 60;
+    $('fee').value = 0; $('life').value = 0;
+  }
+  render();
+  syncUrl();
+}
+
+/* ====== Четене на входа ====== */
+function readInput(){
+  const rate = clampNum($('rate').value, 0, 60, 0);
+  const months = Math.round(clampNum($('term').value, 1, 480, 1));
+  const fee = clampNum($('fee').value, 0, 1e6, 0);
+  const mfee = clampNum($('mfee').value, 0, 1e4, 0);
+  const life = clampNum($('life').value, 0, 1e4, 0);
+  let price = 0, downPct = 0, downAmt = 0, loan = 0, insM = 0;
+
+  if (mode === 'mortgage'){
+    price = clampNum($('price').value, 0, 1e8, 0);
+    downPct = clampNum($('down').value, 0, 100, 0);
+    downAmt = price * downPct / 100;
+    loan = price - downAmt;
+    insM = clampNum($('ins').value, 0, 1e5, 0) / 12;
+  } else {
+    loan = clampNum($('amount').value, 0, 1e7, 0);
+  }
+  return {
+    price, downPct, downAmt, loan, rate, months,
+    upfront: fee, monthlyFee: mfee + life, monthlyInsurance: insM,
+    extra: clampNum($('extra').value, 0, 1e6, 0),
+    lump: clampNum($('lump').value, 0, 1e7, 0),
+    lumpm: Math.round(clampNum($('lumpm').value, 1, 480, 1))
+  };
+}
+
+/* ====== Анимация на числата ====== */
+function animate(el, to, fmt){
+  const from = typeof last[el.id] === 'number' ? last[el.id] : to;
+  last[el.id] = to;
+  if (reduce || from === to){ el.innerHTML = fmt(to); return; }
+  const t0 = performance.now(), dur = 480;
+  function step(t){
+    const k = Math.min(1, (t - t0) / dur);
+    const e = 1 - Math.pow(1 - k, 3);
+    el.innerHTML = fmt(from + (to - from) * e);
+    if (k < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+/* ====== Рендер ====== */
+let timer;
+function schedule(){ clearTimeout(timer); timer = setTimeout(render, 140); }
+
+function render(){
+  const v = readInput();
+  syncHints(v);
+
+  const base = buildSchedule({ principal:v.loan, annualRate:v.rate, months:v.months, type:payType,
+    monthlyFee:v.monthlyFee, monthlyInsurance:v.monthlyInsurance });
+  const s = buildSchedule({ principal:v.loan, annualRate:v.rate, months:v.months, type:payType,
+    monthlyFee:v.monthlyFee, monthlyInsurance:v.monthlyInsurance,
+    extraMonthly:v.extra, lumpMonth:v.lumpm, lumpAmount:v.lump });
+
+  const msg = $('msg');
+  if (!s.valid){
+    msg.innerHTML = '<div class="warn">' + errorFor(v) + '</div>';
+    $('payNum').innerHTML = '—<span class="cur">€</span>';
+    $('payBgn').textContent = '';
+    ['vPrin','vInt','vFees','sTotal','sApr','sLoan','sTerm'].forEach(id => $(id).textContent = '—');
+    setArcs(0, 0);
+    $('sparkLine').setAttribute('d',''); $('sparkArea').setAttribute('d','');
+    $('sparkEnd').textContent = '';
+    $('planBody').innerHTML = '<p class="hint" style="margin:0">Планът ще се появи, когато параметрите са валидни.</p>';
+    $('dockPay').textContent = '—'; $('dockApr').textContent = '';
+    return;
+  }
+
+  const g = apr(s, v.loan, v.upfront);
+  const declining = payType === 'declining';
+
+  $('payLab').textContent = declining ? 'Първа месечна вноска' : 'Месечна вноска';
+  animate($('payNum'), s.firstPayment, x => nf2.format(x) + '<span class="cur">€</span>');
+  $('payBgn').textContent = bgn(s.firstPayment) + (declining ? ' · последна ' + eur(s.lastPayment) : '');
+
+  animate($('vPrin'), v.loan, eur0);
+  animate($('vInt'), s.totalInterest, eur0);
+  animate($('vFees'), s.totalFees + v.upfront, eur0);
+  animate($('sTotal'), s.totalPaid + v.upfront, x => eur0(x) + ' <small>' + nf0.format(Math.round(x*FX)) + ' лв.</small>');
+  $('sApr').textContent = isFinite(g) ? pct(g) : '—';
+  animate($('sLoan'), v.loan, eur0);
+  $('sTerm').textContent = termText(s.termMonths);
+
+  setArcs(v.loan, s.totalInterest + s.totalFees + v.upfront);
+  drawSpark(s);
+
+  if (v.extra > 0 || v.lump > 0){
+    const savedInt = base.totalInterest + base.totalFees - (s.totalInterest + s.totalFees);
+    const savedM = base.termMonths - s.termMonths;
+    msg.innerHTML = '<div class="saved">Спестявате <b>' + eur0(savedInt) + '</b> и затваряте кредита ' +
+      (savedM > 0 ? '<b>' + termText(savedM) + '</b> по-рано.' : 'в същия срок.') + '</div>';
+  } else if (v.rate === 0){
+    msg.innerHTML = '<div class="saved">При 0 % лихва вноската е просто кредитът, разделен на срока.</div>';
+  } else {
+    msg.innerHTML = '';
+  }
+
+  $('dockPay').textContent = eur(s.firstPayment);
+  $('dockApr').textContent = isFinite(g) ? 'ГПР ' + pct(g) : '';
+
+  renderPlan(s);
+}
+
+function errorFor(v){
+  if (mode === 'mortgage' && v.price <= 0) return 'Въведете цена на имота.';
+  if (v.loan <= 0) return mode === 'mortgage'
+    ? 'Самоучастието покрива цялата цена — кредит не е необходим.'
+    : 'Въведете сума на кредита.';
+  if (v.months <= 0) return 'Въведете срок от поне 1 месец.';
+  return 'Вноската не покрива дължимата лихва. Намалете срока или сумата.';
+}
+
+function syncHints(v){
+  $('termUnit').textContent = 'месеца';
+  $('termHint').textContent = termText(v.months);
+  $('downHint').textContent = mode === 'mortgage'
+    ? 'Самоучастие ' + eur0(v.downAmt) + ' · кредит ' + eur0(Math.max(0, v.loan))
+    : '';
+  $('formTitle').textContent = mode === 'mortgage' ? 'Ипотечен кредит' : 'Потребителски кредит';
+}
+
+const C = 2 * Math.PI * 50;
+function setArcs(prin, cost){
+  const tot = prin + cost;
+  const p = tot > 0 ? prin / tot : 0;
+  const a1 = $('arcPrin'), a2 = $('arcInt');
+  a1.style.strokeDasharray = C; a2.style.strokeDasharray = C;
+  a1.style.strokeDashoffset = C * (1 - p);
+  a2.style.strokeDashoffset = C * p;
+  a2.style.transform = 'rotate(' + (-90 + p * 360) + 'deg)';
+  a2.style.transformOrigin = '60px 60px';
+  a2.setAttribute('transform','');
+}
+
+function drawSpark(s){
+  const rows = s.rows, n = rows.length;
+  const step = Math.max(1, Math.floor(n / 120));
+  const pts = [];
+  for (let k = 0; k < n; k += step) pts.push(rows[k].balance);
+  pts.unshift(rows[0].balance + rows[0].principal);
+  pts.push(0);
+  const max = pts[0] || 1;
+  const W = 300, H = 64;
+  const d = pts.map((b, k) => {
+    const x = (k / (pts.length - 1)) * W;
+    const y = H - (b / max) * H + 4;
+    return (k ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1);
+  }).join(' ');
+  $('sparkLine').setAttribute('d', d);
+  $('sparkArea').setAttribute('d', d + ' L' + W + ' ' + (H + 4) + ' L0 ' + (H + 4) + ' Z');
+  $('sparkEnd').textContent = 'до ' + termText(s.termMonths);
+}
+
+/* ====== Погасителен план ====== */
+function renderPlan(s){
+  const years = Math.ceil(s.termMonths / 12);
+  const out = [];
+  for (let y = 0; y < years; y++){
+    const rows = s.rows.slice(y * 12, y * 12 + 12);
+    const pi = rows.reduce((a,r)=>a+r.interest,0);
+    const pp = rows.reduce((a,r)=>a+r.principal,0);
+    out.push(
+      '<details class="yr"><summary>' +
+        '<span class="ytitle">Година ' + (y+1) + '</span>' +
+        '<span></span>' +
+        '<span class="ymeta">лихва ' + eur0(pi) + ' · главница ' + eur0(pp) +
+        '<br>остатък ' + eur0(rows[rows.length-1].balance) + '</span>' +
+      '</summary><div class="scroll"><table><thead><tr>' +
+        '<th>Месец</th><th>Вноска</th><th>Лихва</th><th>Главница</th><th>Такси</th><th>Остатък</th>' +
+      '</tr></thead><tbody>' +
+      rows.map((r,k)=>'<tr style="animation-delay:' + (k*22) + 'ms"><td>' + r.m + '</td><td>' +
+        nf2.format(r.payment) + '</td><td>' + nf2.format(r.interest) + '</td><td>' +
+        nf2.format(r.principal) + '</td><td>' + nf2.format(r.fees) + '</td><td>' +
+        nf2.format(r.balance) + '</td></tr>').join('') +
+      '</tbody></table></div></details>'
+    );
+  }
+  $('planBody').innerHTML = out.join('');
+}
+
+$('btnAll').addEventListener('click', () => {
+  const all = [...document.querySelectorAll('.yr')];
+  const open = all.every(d => d.open);
+  all.forEach(d => d.open = !open);
+  $('btnAll').textContent = open ? 'Разгъни всички години' : 'Свий всички години';
+});
+
+$('btnPrint').addEventListener('click', () => {
+  document.querySelectorAll('.yr').forEach(d => d.open = true);
+  setTimeout(() => window.print(), 60);
+});
+
+/* ====== Копиране на офертата ====== */
+$('btnCopy').addEventListener('click', async () => {
+  const v = readInput();
+  const s = buildSchedule({ principal:v.loan, annualRate:v.rate, months:v.months, type:payType,
+    monthlyFee:v.monthlyFee, monthlyInsurance:v.monthlyInsurance,
+    extraMonthly:v.extra, lumpMonth:v.lumpm, lumpAmount:v.lump });
+  if (!s.valid) return;
+  const g = apr(s, v.loan, v.upfront);
+  const lines = [
+    (mode === 'mortgage' ? 'Ипотечен кредит' : 'Потребителски кредит'),
+    'Размер: ' + eur(v.loan) + ' (' + bgn(v.loan) + ')',
+    mode === 'mortgage' ? 'Цена на имота: ' + eur(v.price) + ', самоучастие ' + nf0.format(v.downPct) + '% = ' + eur(v.downAmt) : null,
+    'ГЛП: ' + pct(v.rate) + ' · срок: ' + termText(s.termMonths) + ' · ' + (payType === 'annuity' ? 'анюитетни вноски' : 'намаляващи вноски'),
+    (payType === 'annuity' ? 'Месечна вноска: ' : 'Първа вноска: ') + eur(s.firstPayment) + ' (' + bgn(s.firstPayment) + ')',
+    'Общо лихва: ' + eur(s.totalInterest),
+    'Такси общо: ' + eur(s.totalFees + v.upfront),
+    'Общо за връщане: ' + eur(s.totalPaid + v.upfront),
+    isFinite(g) ? 'ГПР: ' + pct(g) : null,
+    '',
+    location.href
+  ].filter(Boolean);
+  try {
+    await navigator.clipboard.writeText(lines.join('\n'));
+    flash('Копирано');
+  } catch(e) {
+    flash('Копирането не мина — маркирайте текста ръчно');
+  }
+});
+
+function flash(text){
+  const b = $('btnCopy'), old = b.textContent;
+  b.textContent = text;
+  setTimeout(()=> b.textContent = old, 1600);
+}
+
+/* ====== Връзка с URL ====== */
+function syncUrl(){
+  const v = readInput();
+  const p = new URLSearchParams({ mode, type:payType, rate:v.rate, months:v.months });
+  if (mode === 'mortgage'){ p.set('price', v.price); p.set('down', v.downPct); }
+  else p.set('amount', v.loan);
+  if (v.extra) p.set('extra', v.extra);
+  if (v.lump){ p.set('lump', v.lump); p.set('lumpm', v.lumpm); }
+  history.replaceState(null, '', '?' + p.toString());
+}
+let urlTimer;
+document.addEventListener('input', ()=>{ clearTimeout(urlTimer); urlTimer = setTimeout(syncUrl, 600); });
+
+function fromUrl(){
+  const p = new URLSearchParams(location.search);
+  if (![...p.keys()].length) return;
+  if (p.get('mode') === 'consumer') mode = 'consumer';
+  setMode(mode);
+  const set = (id, key) => { if (p.has(key)){ $(id).value = p.get(key); const r = $(id + '-r'); if (r) r.value = p.get(key); } };
+  set('price','price'); set('down','down'); set('amount','amount');
+  set('rate','rate'); set('term','months'); set('extra','extra');
+  set('lump','lump'); set('lumpm','lumpm');
+  if (p.get('type') === 'declining'){
+    payType = 'declining';
+    [...$('segType').children].forEach(x => x.setAttribute('aria-pressed', String(x.dataset.v === 'declining')));
+  }
+  syncUrl();
+}
+
+/* ====== Лепкава лента ====== */
+if ('IntersectionObserver' in window){
+  new IntersectionObserver(es => {
+    $('dock').classList.toggle('on', !es[0].isIntersecting);
+  }, { threshold: 0 }).observe($('result'));
+}
+
+fromUrl();
+render();
+</script>
+</body>
+</html>
